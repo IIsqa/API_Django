@@ -1,13 +1,19 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import DepartmentViewSet, PositionViewSet, EmployeeViewSet
+from .views import UserRegisterView
 
-from . import views
+router = DefaultRouter()
+router.register(r'departments', DepartmentViewSet)
+router.register(r'positions', PositionViewSet)
+router.register(r'employees', EmployeeViewSet)
+
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
-    path('department/',views.DepartmentListCreate.as_view(), name='department_create'),
-    path('department/<int:pk>/', views.DepartmentRetrieveUpdateDestory.as_view(), name='department_detail'),
-    path('department/<str:name>/', views.DepartmentDetailView.as_view(), name='department_search'),
-    path('position/', views.PositionListCreate.as_view(), name='position_create'),
-    path('position/<int:pk>/', views.PositionRetrieveUpdateDestroy.as_view(), name='position_detail'),
-    path('position/<str:name>/', views.PositionDetailView.as_view(), name='position_search'),
-    path('employee/', views.EmployeeListCreate.as_view(), name='employee_create'),
+    path('', include(router.urls)),
+    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('logout/', TokenRefreshView.as_view(), name='token_refresh'),  # Uncomment for JWT authentication
+    path('register/', UserRegisterView.as_view(), name='register'),
+    path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
