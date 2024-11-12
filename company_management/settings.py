@@ -55,6 +55,14 @@ REST_FRAMEWORK = {
     ),
 }
 
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
 
 
 # AUTH_USER_MODEL = 'accounts.User'
@@ -63,6 +71,8 @@ REST_FRAMEWORK = {
 LOGIN_REDIRECT_URL = '/admin/'
 
 MIDDLEWARE = [
+    'django.middleware.locale.LocaleMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -70,6 +80,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.BlockIPMiddleware',
 ]
 
 ROOT_URLCONF = 'company_management.urls'
@@ -127,10 +138,34 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'send-notifications-every-day': {
+        'task': 'core.tasks.send_notification',
+        'schedule': crontab(hour=9, minute=0),  # Every day at 9 AM
+    },
+}
+INSTALLED_APPS += ['drf_yasg']
+
+# settings.py
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
+
+LANGUAGES = [
+    ('en', 'English'),
+    ('az', 'Azerbaijani'),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',  # Directory to store translation files
+]
+
 
 TIME_ZONE = 'Asia/Baku'
 

@@ -11,7 +11,28 @@ from rest_framework import viewsets
 from .models import Department, Position, Employee
 from .serializers import *
 from rest_framework.views import APIView
+from .permissions import IsAdminOrReadOnlyForUser
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+
+@api_view(['GET','POST','DELETE','PUT'])
+@permission_classes([IsAdminOrReadOnlyForUser])
+def example_view(request):
+    if request.method == 'GET':
+        return Response ({"message": "GET request success!"})
+                         
+
+    elif request.method == 'POST':
+        return Response ({"message": "POST request success!"})
+
+
+    elif request.method == 'PUT':
+        return Response ({"message": "PUT request success!"})
     
+    elif request.method == 'DELETE':
+        return Response ({"message": "DELETE request success!"})
+
+
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
