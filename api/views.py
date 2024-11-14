@@ -11,7 +11,7 @@ from rest_framework import viewsets
 from .models import Department, Position, Employee
 from .serializers import *
 from rest_framework.views import APIView
-from .permissions import IsAdminOrReadOnlyForUser
+from core.permissions import IsAdminOrReadOnlyForUser
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 

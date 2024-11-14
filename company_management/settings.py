@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from django.utils.translation import gettext_lazy as _
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,56 +24,67 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure--ru)n+4r=yjdj_d@o=y_@tdhry&ag_+4pfte6cazt(4joz^ap9'
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = ['*']
+
+
+# ----------------------------------------------------------------
 
 
 # Application definition
 
 INSTALLED_APPS = [
     'jazzmin',
-
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
+    'modeltranslation',
     'core',
     'api',
     'accounts',
     'rest_framework',
+    'drf_yasg',
     'rest_framework_simplejwt',
 ]
 
+# ----------------------------------------------------------------------------
 
 
+
+# REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     ),
-}
-
-from datetime import timedelta
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',  # Ensure drf-spectacular schema if using Swagger
 }
 
 
 
-# AUTH_USER_MODEL = 'accounts.User'
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     ),
+# }
 
-# settings.py
-LOGIN_REDIRECT_URL = '/admin/'
+
+
+# ----------------------------------------------------------------
+
+
+
+# Middleware configuration
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -81,9 +95,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.BlockIPMiddleware',
+    'core.middleware.LogIPMiddleware',
 ]
+# ----------------------------------------------------------------
 
-ROOT_URLCONF = 'company_management.urls'
+
+
 
 TEMPLATES = [
     {
@@ -101,70 +118,147 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'company_management.wsgi.application'
+
+# ----------------------------------------------------------------
+
 
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": 'company',
-        "PASSWORD": '12345',
-        "USER": 'root',
-        "HOST": '127.0.0.1',
-        "PORT": 7000,
+        "NAME": os.environ.get('DB_NAME', 'management'),  # Use environment variable
+        "USER": os.environ.get('DB_USER', 'root'),         # Use environment variable
+        "PASSWORD": os.environ.get('DB_PASSWORD', '12345'), # Use environment variable
+        "HOST": os.environ.get('DB_HOST', '127.0.0.1'),   # Use environment variable
+        "PORT": os.environ.get('DB_PORT', '7000'),         # Use environment variable
     }
 }
+
+
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql_psycopg2",
+#         "NAME": 'company',
+#         "PASSWORD": '12345',
+#         "USER": 'root',
+#         "HOST": '127.0.0.1',
+#         "PORT": 7000,
+#     }
+# }
+
+
+
+# ----------------------------------------------------------------
 
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
 
-from celery.schedules import crontab
+# ----------------------------------------------------------------
 
+# Simple JWT settings
+
+
+SIMPLE_JWT = {
+    'AUTH_HEADER_TYPES': ('JWT',),
+}
+
+
+# from datetime import timedelta
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+#     'ROTATE_REFRESH_TOKENS': True,
+#     'BLACKLIST_AFTER_ROTATION': True,
+# }
+
+
+# ----------------------------------------------------------------
+
+
+
+# Celery settings
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULE = {
-    'send-notifications-every-day': {
-        'task': 'core.tasks.send_notification',
-        'schedule': crontab(hour=9, minute=0),  # Every day at 9 AM
+    'notify_unregistered_employees': {
+        'task': 'core.tasks.notify_unregistered_employees',
+        'schedule': crontab(minute='*/3'),  # Every 3 minutes
     },
 }
-INSTALLED_APPS += ['drf_yasg']
 
-# settings.py
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+
+# CELERY_BEAT_SCHEDULE = {
+#     'send-notifications-every-day': {
+#         'task': 'core.tasks.send_notification',
+#         'schedule': crontab(hour=9, minute=0),  # Every day at 9 AM
+#     },
+# }
+# INSTALLED_APPS += ['drf_yasg']
+
+
+# ----------------------------------------------------------------
+
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
+
+
+# ----------------------------------------------------------------
+
+
+
+# Supported languages
+
 LANGUAGE_CODE = 'en-us'
 
-LANGUAGES = [
+LANGUAGES = (
     ('en', 'English'),
     ('az', 'Azerbaijani'),
-]
+)
+
+
+# Model Translation default language
+MODELTRANSLATION_LANGUAGES = ('en', 'az')
+
+
+# ----------------------------------------------------------------
+
+
+
+# settings.py
 
 LOCALE_PATHS = [
     BASE_DIR / 'locale',  # Directory to store translation files
 ]
+
+
+WSGI_APPLICATION = 'company_management.wsgi.application'
+LOGIN_REDIRECT_URL = '/admin/'
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+
+ROOT_URLCONF = 'company_management.urls'
+
 
 
 TIME_ZONE = 'Asia/Baku'
@@ -183,3 +277,18 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+# ----------------------------------------------------------------
+
+
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'iismayilzade2006@gmail.com'  # Your email address
+EMAIL_HOST_PASSWORD = 'bsic gtdo aijd owcf'  # Generated app password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

@@ -10,3 +10,11 @@ class BlockIPMiddleware:
         if request.META['REMOTE_ADDR'] in self.BLOCKED_IPS:
             return JsonResponse({'error': 'Access denied.'}, status=403)
         return self.get_response(request)
+
+
+from django.utils.deprecation import MiddlewareMixin
+
+class LogIPMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        ip = request.META.get('REMOTE_ADDR')
+        print(f"IP Address: {ip}")
