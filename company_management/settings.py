@@ -130,7 +130,7 @@ TEMPLATES = [
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": os.environ.get('DB_NAME', 'management'),  # Use environment variable
+        "NAME": os.environ.get('DB_NAME', 'company'),  # Use environment variable
         "USER": os.environ.get('DB_USER', 'root'),         # Use environment variable
         "PASSWORD": os.environ.get('DB_PASSWORD', '12345'), # Use environment variable
         "HOST": os.environ.get('DB_HOST', '127.0.0.1'),   # Use environment variable
